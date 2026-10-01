@@ -15,10 +15,20 @@ extensions/
   application-sync/              Browser extension for assisted form filling
 integrations/
   jobseekingos/                  Integration contract for pending proposals
+downloads/                       Stable ZIP downloads used by 4173, 4174 and Meoo
 docs/
   support-matrix.md              Verified support versus planned coverage
   privacy-and-safety.md          Data and approval boundaries
 ```
+
+## Downloads
+
+- [Job capture extension](downloads/job-capture-extension-source.zip)
+- [Application sync extension](downloads/application-sync-extension.zip)
+
+The ZIP files are built from the corresponding `extensions/` directories. Run
+`python3 tools/build_downloads.py --check` to verify that source and downloads
+are byte-for-byte synchronized.
 
 ## Languages
 
@@ -42,4 +52,3 @@ python3 -m unittest discover -s skills/salary-negotiation-assistant/tests -p 'te
 ```
 
 Browser-extension support requires live-page readback in addition to source tests. No extension should upload attachments, save a draft, or submit an application during validation unless the user explicitly requests that action.
-
