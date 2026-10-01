@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "skillVersion": "0.1.0",
+  "source": {
+    "jobId": "synthetic-job",
+    "jdVersion": "sha256:synthetic",
+    "jdSha256": "synthetic",
+    "profileVersion": "synthetic-profile-v1",
+    "profileSha256": "synthetic",
+    "profileCompleteness": 83
+  },
+  "job": {
+    "company": "合成样例公司",
+    "title": "医疗 AI 应用工程师",
+    "jd": "本科及以上学历。使用 Python 开发医疗数据处理流程。与产品和临床团队协作完成原型验证。"
+  },
+  "confirmedProfile": {"name": "测试用户"},
+  "analysis": {
+    "hardGates": [
+      {"id": "gate-degree", "statement": "本科及以上学历", "classification": "fact", "sourceQuotes": [{"quote": "本科及以上学历", "start": 0, "end": 7}], "candidateStatus": "met", "evidence": [{"profilePath": "degree", "excerpt": "硕士", "reasoning": "学历满足门槛"}]}
+    ],
+    "coreCapabilities": [
+      {"id": "cap-python", "statement": "使用 Python 开发医疗数据处理流程", "classification": "fact", "weight": 60, "sourceQuotes": [{"quote": "使用 Python 开发医疗数据处理流程", "start": 8, "end": 28}], "evidenceLevel": "direct", "evidence": [{"profilePath": "projectExperience", "excerpt": "使用 Python 完成医疗数据清洗与可复现分析", "reasoning": "同类工具、数据对象与交付"}], "gap": "", "nextAction": ""},
+      {"id": "cap-collab", "statement": "跨产品与临床团队协作完成原型验证", "classification": "fact", "weight": 40, "sourceQuotes": [{"quote": "与产品和临床团队协作完成原型验证", "start": 29, "end": 45}], "evidenceLevel": "transferable", "evidence": [{"profilePath": "practiceExperience", "excerpt": "与研究团队合作交付分析报告", "reasoning": "有跨角色协作，但未证明产品与临床原型验证"}], "gap": "缺少临床产品原型验证证据", "nextAction": "补充一次跨角色原型迭代案例"}
+    ],
+    "implicitExpectations": [
+      {"id": "implicit-translation", "statement": "需要把临床需求转化为可验证原型", "classification": "inference", "reasoning": "协作对象和交付物共同指向需求翻译", "confidence": "medium", "sourceQuotes": [{"quote": "与产品和临床团队协作完成原型验证", "start": 29, "end": 45}]}
+    ],
+    "cultureSignals": [
+      {"id": "culture-collab", "statement": "重视跨团队协作", "classification": "inference", "reasoning": "JD 明确列出产品和临床团队协作", "confidence": "medium", "sourceQuotes": [{"quote": "与产品和临床团队协作完成原型验证", "start": 29, "end": 45}]}
+    ],
+    "unknowns": ["团队规模与汇报对象未知"],
+    "summary": "Python 医疗数据经验有直接证据；原型协作经验可迁移但仍需补强。"
+  }
+}

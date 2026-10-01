@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "JobSeekingOS 网申同步助手",
+  "version": "0.5.11",
+  "description": "读取已确认档案，自动填写招聘表单并汇总需核对项。",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_title": "网申同步助手",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "all_frames": true
+    }
+  ]
+}

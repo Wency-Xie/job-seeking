@@ -1,0 +1,19 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.env
+.env.*
+node_modules/
+dist/
+build/
+coverage/
+*.log
+
+# Never publish personal JobSeekingOS workspaces or generated proposals.
+.workbench/
+jobs/
+proposal.json
+draft.json
+*.docx
+*.pdf
+
