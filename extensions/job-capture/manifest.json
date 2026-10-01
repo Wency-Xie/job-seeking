@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JobSeekingOS 官网岗位采集",
-  "version": "0.3.7",
+  "version": "0.4.0",
   "description": "从招聘页面提取岗位，经原页核对后导入 JobSeekingOS。",
   "permissions": [
     "activeTab",

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JobSeekingOS 网申同步助手",
-  "version": "0.5.11",
+  "version": "0.6.0",
   "description": "读取已确认档案，自动填写招聘表单并汇总需核对项。",
   "permissions": [
     "activeTab",

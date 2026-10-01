@@ -1,5 +1,5 @@
 import { readLocalProfile } from "./profile-source.js";
-const status=document.querySelector("#status"),fill=document.querySelector("#fill"),identity=document.querySelector("#identity");
+const status=document.querySelector("#status"),fill=document.querySelector("#fill"),identity=document.querySelector("#identity"),workspace=document.querySelector("#workspace");
 let activeTab;
 let connectionError="";
 const retry=document.querySelector("#retry");
@@ -17,7 +17,7 @@ async function send(tabId,message){
   return result;
 }
 async function readProfile(includeIdentity){
-  try{return await readLocalProfile(includeIdentity);}
+  try{return await readLocalProfile(includeIdentity,workspace.value);}
   catch(error){connectionError=error.message;return null;}
 }
 
@@ -37,5 +37,6 @@ async function init(){
   finally{retry.disabled=false;}
 }
 retry.addEventListener("click",init);
+workspace.addEventListener("change",init);
 fill.addEventListener("click",async()=>{saveRun("已点击自动填写");fill.disabled=true;try{const source=await bounded(readProfile(identity.checked),12000);if(!source)throw Error(connectionError||"档案无法读取");await chrome.scripting.executeScript({target:{tabId:activeTab.id},files:["autofill-plan.js","automatic-adapter.js"]});show("正在逐项填写，请保持此面板和招聘页面打开。进度显示在页面右下角。");const started=await bounded(send(activeTab.id,{type:"JOBSEEKING_AUTO_START",profile:source.profile}),12000);if(!started?.ok)throw Error(started?.error||"页面未响应");for(let index=0;index<started.count;index++){const step=await bounded(send(activeTab.id,{type:"JOBSEEKING_AUTO_STEP",index}),45000);if(!step?.ok)throw Error(`第 ${index+1} 项：${step?.error||"页面未响应"}`);}const result=await bounded(send(activeTab.id,{type:"JOBSEEKING_AUTO_FINISH"}),12000);if(!result?.ok)throw Error(result?.error||"汇总失败");saveRun("已完成填写");show("填写已结束。请在招聘页面右下角核对结果和待补字段。");fill.disabled=false;}catch(error){saveRun(`填写中断：${error.message}`);show(`填写中断：${error.message}。已填字段保留；请查看页面并重试剩余字段。`);fill.disabled=false;}});
 init().catch(()=>show("连接失败，请重新打开助手。"));

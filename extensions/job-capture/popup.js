@@ -1,4 +1,5 @@
 const $=id=>document.getElementById(id);
+const ADAPTER_VERSION="0.4.0";
 let captures=[];
 function extract() {
   const norm=value=>String(value||"").replace(/\s+/g," ").trim();
@@ -191,7 +192,7 @@ function render(index){
   $("preview").hidden=false;
   $("open").onclick=async()=>{
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[item]});
+    await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin:$("workspace").value}]});
     window.close();
   };
 }
@@ -204,7 +205,7 @@ function showReview(item){
   const title=document.createElement("div");title.innerHTML="<small style='color:#358474'>官网岗位采集</small><h2 style='margin:4px 0;font-size:24px'>在当前岗位页核对</h2><p style='margin:0;color:#61747a'>对照招聘页面，确认后直接加入候选岗位。</p>";heading.append(title);
   const close=document.createElement("button");close.textContent="关闭";close.onclick=()=>host.remove();heading.append(close);panel.append(heading);
   const known=["wuxiapptec.zhiye.com","genomics.zhiye.com","app.mokahr.com","www.moseeker.com","moseeker.com"].includes(new URL(item.sourceUrl).hostname);
-  const sourceNote=document.createElement("p");sourceNote.style.cssText="padding:10px 12px;background:#fff5df;color:#6e5432;font-size:13px";sourceNote.textContent=known?"该网站有专用识别规则。仍需逐项核对公司、岗位及完整原文。":"未验证来源：通用提取可能抓到列表或其他岗位。请逐项对照原页，缺失字段手动补齐。";panel.append(sourceNote);
+  const sourceNote=document.createElement("p");sourceNote.style.cssText="padding:10px 12px;background:#fff5df;color:#6e5432;font-size:13px";sourceNote.textContent=`${item.workspaceOrigin?.endsWith(":4174")?"4174 开发测试":"4173 个人验收"} · ${known?"该网站有专用识别规则。仍需逐项核对公司、岗位及完整原文。":"未验证来源：通用提取可能抓到列表或其他岗位。请逐项对照原页，缺失字段手动补齐。"}`;panel.append(sourceNote);
   const fields={};
   for(const [key,label] of [["company","公司"],["title","职位"],["base","Base"],["recruitmentType","招聘批次"],["jobCode","岗位编号"],["sourceUrl","来源链接"]]){
     const wrap=document.createElement("label");wrap.style.cssText="display:grid;gap:5px;margin:12px 0;color:#52686e;font-weight:600";wrap.textContent=label;
@@ -220,13 +221,15 @@ function showReview(item){
     const capture={...item,...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),jd:jd.value.trim()};
     if(!capture.company||!capture.title||capture.jd.length<30){status.textContent="请核对公司、职位、来源链接与至少 30 字的完整岗位原文。";return;}
     submit.disabled=true;submit.textContent="保存中…";status.textContent="";
-    chrome.runtime.sendMessage({type:"save-reviewed-capture",capture,targetId:target.value||undefined},reply=>{
+    const {workspaceOrigin,...captureForSave}=capture;
+    chrome.runtime.sendMessage({type:"save-reviewed-capture",capture:captureForSave,targetId:target.value||undefined,workspaceOrigin},reply=>{
       if(!reply?.ok){status.textContent=reply?.error||chrome.runtime.lastError?.message||"保存失败，请重试。";submit.disabled=false;submit.textContent="核对无误，加入候选岗位";return;}
       status.style.color="#175849";status.textContent=`已保存「${reply.job.title}」，正在打开候选岗位。`;submit.textContent="已加入候选";
     });
   };panel.append(submit);document.body.append(host);
   if(!item.company||!item.title||item.jd.length<30){target.replaceChildren(new Option("新建候选岗位",""));target.disabled=false;submit.disabled=false;status.textContent="提取信息不完整；请在原页补齐公司、职位和完整 JD。";return;}
-  chrome.runtime.sendMessage({type:"find-capture-matches",capture:item},reply=>{
+  const {workspaceOrigin,...captureForMatch}=item;
+  chrome.runtime.sendMessage({type:"find-capture-matches",capture:captureForMatch,workspaceOrigin},reply=>{
     if(!reply?.ok){status.textContent=reply?.error||chrome.runtime.lastError?.message||"查询已有岗位失败，请重试打开采集面板。";return;}
     target.replaceChildren();target.add(new Option("新建候选岗位",""));
     for(const match of reply.matches||[])target.add(new Option(`关联已有：${match.title} · ${match.base||"Base 待补"}`,match.id));
@@ -240,7 +243,7 @@ function showReview(item){
     if(!tab?.url?.startsWith("https://"))throw new Error("请先打开 HTTPS 招聘岗位页面。");
     const result=await chrome.scripting.executeScript({target:{tabId:tab.id},func:extract});
     const extracted=result[0]?.result||{jobs:[],suggestedIndex:null};
-    captures=extracted.jobs;
+    captures=extracted.jobs.map(item=>JobSeekingContracts.normalizeCapturedJob(item,ADAPTER_VERSION));
     if(!captures.length)throw new Error("未找到岗位。请先展开目标岗位，再打开插件。");
     if(captures.length>1){$("picker").hidden=false;$("jobs").add(new Option("请确认当前展开的岗位",""));captures.forEach((item,index)=>$("jobs").add(new Option(`${item.jobCode||"无编号"} · ${item.title||"职位待补"}`,String(index))));$("jobs").onchange=event=>{if(event.target.value!=="")render(Number(event.target.value));else $("preview").hidden=true;};}
     if(extracted.suggestedIndex!==null){
