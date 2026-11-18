@@ -1,11 +1,13 @@
 const $=id=>document.getElementById(id);
-const ADAPTER_VERSION="0.5.0";
+const ADAPTER_VERSION="0.5.1";
 let captures=[];
+let workspaceOrigin=DEFAULT_WORKSPACE_ORIGIN;
 function extract() {
   const norm=value=>String(value||"").replace(/\s+/g," ").trim();
   const text=node=>norm(node?.innerText||node?.textContent);
   const host=location.hostname.toLowerCase();
   const isWuxi=host==="wuxiapptec.zhiye.com";
+  const isWuxiBiologics=host==="job.wuxibiologics.com.cn";
   const isBgi=host==="genomics.zhiye.com";
   const isMoseeker=/(?:^|\.)moseeker\.com$/.test(host)&&/^\/position\/index\/pid\/\d+/.test(location.pathname);
   // Ignore our previous review panel when collecting page text again.
@@ -84,6 +86,22 @@ function extract() {
       const viewportTop=inViewport?Math.max(0,rect.top):Infinity;
       if(!unique.has(code)||viewportTop<unique.get(code).viewportTop)unique.set(code,{capture:{company:isWuxi?"药明康德":isBgi?"华大BGI":"",title,base,recruitmentType,jd,sourceUrl:location.href,jobCode:code},inViewport,viewportTop});
     }
+  }
+  if(!unique.size&&isWuxiBiologics){
+    const lines=readPage().split(/\n/).map(norm).filter(Boolean);
+    const description=lines.findIndex(line=>/^职位描述$/.test(line));
+    const before=lines.slice(0,description>=0?description:undefined);
+    const title=before.findLast(line=>/^20\d{2}届\s*[-－—]/.test(line)&&line.length<180)||before.findLast(line=>line.length<180&&/(?:研究员|工程师|经理|专员|管培生|实习生)/.test(line)&&!/[|｜]/.test(line))||"";
+    const metaLine=before.findLast(line=>/[|｜]/.test(line)&&line.split(/[|｜]/).length>=2)||"";
+    const meta=metaLine.split(/[|｜]/).map(norm).filter(Boolean);
+    const base=meta.find(value=>places.test(value)||/^[\u4e00-\u9fff]{2,9}市$/.test(value))||"";
+    const end=lines.findIndex((line,index)=>index>description&&/^申请职位$/.test(line));
+    const jd=description>=0?formatDescription(lines.slice(description,end>description?end:undefined).join("\n")):"";
+    const jobCode=location.hash.match(/\/job\/([a-z0-9-]+)/i)?.[1]||"";
+    const legalLine=lines.findLast(line=>/药明生物.*(?:股份有限公司|有限公司)/.test(line))||"";
+    const company=legalLine.match(/([\u4e00-\u9fff]*药明生物[\u4e00-\u9fff]*?(?:股份有限公司|有限公司))/)?.[1]||"药明生物";
+    const year=title.match(/^(20\d{2})届/)?.[1];
+    if(title&&jd.length>=30)unique.set(jobCode||"wuxibiologics",{capture:{company,title,base,recruitmentType:year?`${year}届校园招聘`:"",jd,sourceUrl:location.href,jobCode},inViewport:true});
   }
   if(!unique.size&&isBgi){
     const lines=(document.body?.innerText||"").split(/\n/).map(norm).filter(Boolean);
@@ -164,7 +182,7 @@ function extract() {
     }
   }
   if(!unique.size){
-    const heading=document.querySelector("h1")||document.querySelector("h2");
+    const heading=[...document.querySelectorAll("h1,h2")].find(node=>!node.closest?.("#jobseeking-capture-review"));
     const raw=readPage();
     const bodyStart=raw.search(/(?:^|\n)\s*(?:工作职责|岗位职责|职位描述|职位职责|岗位描述)\s*[：:]?\s*(?:\n|$)/m);
     const start=bodyStart>=0?bodyStart:raw.search(/工作职责|岗位职责|职位描述|职位职责|岗位描述/);
@@ -203,7 +221,7 @@ function dedupeCaptures(items){
 }
 async function openReview(item){
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-  await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin:$("workspace").value}]});
+  await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin}]});
   window.close();
 }
 function showReview(item){
@@ -214,8 +232,8 @@ function showReview(item){
   const heading=document.createElement("header");heading.style.cssText="display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:18px";
   const title=document.createElement("div");title.innerHTML="<small style='color:#358474'>官网岗位采集</small><h2 style='margin:4px 0;font-size:24px'>在当前岗位页核对</h2><p style='margin:0;color:#61747a'>对照招聘页面，确认后直接加入候选岗位。</p>";heading.append(title);
   const close=document.createElement("button");close.textContent="关闭";close.onclick=()=>host.remove();heading.append(close);panel.append(heading);
-  const known=["wuxiapptec.zhiye.com","genomics.zhiye.com","app.mokahr.com","www.moseeker.com","moseeker.com"].includes(new URL(item.sourceUrl).hostname);
-  const sourceNote=document.createElement("p");sourceNote.style.cssText="padding:10px 12px;background:#fff5df;color:#6e5432;font-size:13px";sourceNote.textContent=`${item.workspaceOrigin?.endsWith(":4174")?"4174 开发测试":"4173 个人验收"} · ${known?"该网站有专用识别规则。仍需逐项核对公司、岗位及完整原文。":"未验证来源：通用提取可能抓到列表或其他岗位。请逐项对照原页，缺失字段手动补齐。"}`;panel.append(sourceNote);
+  const known=["wuxiapptec.zhiye.com","job.wuxibiologics.com.cn","genomics.zhiye.com","app.mokahr.com","www.moseeker.com","moseeker.com"].includes(new URL(item.sourceUrl).hostname);
+  const sourceNote=document.createElement("p");sourceNote.style.cssText="padding:10px 12px;background:#fff5df;color:#6e5432;font-size:13px";sourceNote.textContent=`当前工作台 · ${known?"该网站有专用识别规则。仍需逐项核对公司、岗位及完整原文。":"未验证来源：通用提取可能抓到列表或其他岗位。请逐项对照原页，缺失字段手动补齐。"}`;panel.append(sourceNote);
   const fields={};
   for(const [key,label] of [["company","公司"],["title","职位"],["base","Base"],["recruitmentType","招聘批次"],["jobCode","岗位编号"],["sourceUrl","来源链接"]]){
     const wrap=document.createElement("label");wrap.style.cssText="display:grid;gap:5px;margin:12px 0;color:#52686e;font-weight:600";wrap.textContent=label;
@@ -232,22 +250,27 @@ function showReview(item){
     if(!capture.company||!capture.title||capture.jd.length<30){status.textContent="请核对公司、职位、来源链接与至少 30 字的完整岗位原文。";return;}
     submit.disabled=true;submit.textContent="正在导入优先级…";status.textContent="";
     const {workspaceOrigin,...captureForSave}=capture;
-    const origin=["http://127.0.0.1:4173","http://127.0.0.1:4174"].includes(workspaceOrigin)?workspaceOrigin:"http://127.0.0.1:4173";
-    const payload=encodeURIComponent(JSON.stringify({capture:captureForSave,workspaceOrigin:origin}));
+    const origin=workspaceOrigin||"http://127.0.0.1:4173";
+    const payload=encodeURIComponent(JSON.stringify({capture:captureForSave}));
     const opened=window.open(`${origin}/capture-import#${payload}`,"_blank");
     if(opened){
       try{opened.opener=null;}catch{}
     }
     if(!opened){status.style.color="#a04d3a";status.textContent="浏览器阻止了新标签页，请允许此网站打开弹出窗口后重试。";submit.disabled=false;submit.textContent="重新打开导入页";return;}
-    status.style.color="#175849";status.textContent="已打开 4173 导入页；查重、关联和保存将在新标签页完成。";submit.textContent="已打开导入页";
+    status.style.color="#175849";status.textContent="已打开当前工作台导入页；查重、关联和保存将在新标签页完成。";submit.textContent="已打开导入页";
   };panel.append(submit);document.body.append(host);
   if(!item.company||!item.title||item.jd.length<30){target.replaceChildren(new Option("新建候选岗位",""));target.disabled=false;submit.disabled=false;status.textContent="提取信息不完整；请在原页补齐公司、职位和完整 JD。";return;}
-  target.replaceChildren(new Option("在 4173 导入页检查并关联",""));
+  target.replaceChildren(new Option("在当前工作台检查并关联",""));
   target.disabled=true;submit.disabled=false;
-  status.textContent="点击后将在 4173 新标签页查重；发现已有岗位时可先选择关联。";
+  status.textContent="点击后将在当前工作台新标签页查重；发现已有岗位时可先选择关联。";
 }
 (async()=>{
   try{
+    workspaceOrigin=await readWorkspaceOrigin();
+    const workspaceUrl=new URL(workspaceOrigin);
+    $("workspace-label").textContent=workspaceOrigin===DEFAULT_WORKSPACE_ORIGIN?"本机 4173":workspaceUrl.host;
+    $("workspace-label").title=workspaceOrigin;
+    $("workspace-settings").onclick=()=>chrome.runtime.openOptionsPage();
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
     if(!tab?.url?.startsWith("https://"))throw new Error("请先打开 HTTPS 招聘岗位页面。");
     const result=await chrome.scripting.executeScript({target:{tabId:tab.id},func:extract});

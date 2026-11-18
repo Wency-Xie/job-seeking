@@ -8,7 +8,7 @@ vm.runInContext(source, context);
 
 function normalize(input) {
   context.input = input;
-  return vm.runInContext("JobSeekingContracts.normalizeCapturedJob(input, '0.5.0')", context);
+  return vm.runInContext("JobSeekingContracts.normalizeCapturedJob(input, '0.5.1')", context);
 }
 
 const cases = [

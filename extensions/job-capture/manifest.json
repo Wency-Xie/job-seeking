@@ -1,15 +1,13 @@
 {
   "manifest_version": 3,
   "name": "JobSeekingOS 官网岗位采集",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "从招聘页面提取岗位，经原页核对后导入 JobSeekingOS。",
   "permissions": [
     "activeTab",
     "scripting",
-    "tabs"
-  ],
-  "host_permissions": [
-    "http://127.0.0.1/*"
+    "tabs",
+    "storage"
   ],
   "action": {
     "default_title": "采集当前岗位",
@@ -17,5 +15,6 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "options_page": "options.html"
 }

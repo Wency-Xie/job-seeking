@@ -23,8 +23,10 @@ docs/
 
 ## Downloads
 
-- [Job capture extension](downloads/job-capture-extension-source.zip)
+- [Job capture extension](downloads/job-capture-extension-source.zip) — one `v0.5.1` ZIP for Chrome, Edge, and Safari developer installation
 - [Application sync extension](downloads/application-sync-extension.zip)
+
+The job-capture extension defaults to the local JobSeekingOS workspace at `http://127.0.0.1:4173`. Its settings page can bind the installation to one Railway HTTPS origin. The extension package is not a standalone workspace, and a shared deployment must provide its own login and data isolation.
 
 The ZIP files are built from the corresponding `extensions/` directories. Run
 `python3 tools/build_downloads.py --check` to verify that source and downloads

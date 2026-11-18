@@ -8,5 +8,5 @@ if(error){
   retry.textContent="返回岗位页重新导入";
   retry.addEventListener("click",event=>{event.preventDefault();history.back();});
 }else{
-  status.textContent="正在写入 4173，通常只需要 1–2 秒…";
+  status.textContent="正在写入当前工作台，通常只需要 1–2 秒…";
 }
