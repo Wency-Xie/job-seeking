@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const ADAPTER_VERSION="0.5.2";
+const ADAPTER_VERSION="0.5.4";
 let captures=[];
 let workspaceOrigin=DEFAULT_WORKSPACE_ORIGIN;
 function extract() {
@@ -225,20 +225,20 @@ function validateCaptureForImport(capture){
   const title=String(capture?.title||"").trim();
   const sourceUrl=String(capture?.sourceUrl||"").trim();
   const jd=String(capture?.jd||"").trim();
-  if(!company)errors.company="公司不能为空。";
-  if(!title)errors.title="职位不能为空。";
-  if(!sourceUrl)errors.sourceUrl="来源链接不能为空。";
+  if(!company)errors.company="请填写公司名称。";
+  if(!title)errors.title="请填写职位名称。";
+  if(!sourceUrl)errors.sourceUrl="请填写招聘页面的 HTTPS 链接。";
   else{
-    try{if(new URL(sourceUrl).protocol!=="https:")errors.sourceUrl="来源链接必须是完整的 HTTPS 招聘页面地址。";}
-    catch{errors.sourceUrl="来源链接必须是完整的 HTTPS 招聘页面地址。";}
+    try{if(new URL(sourceUrl).protocol!=="https:")errors.sourceUrl="请填写完整的 HTTPS 招聘页面链接（以 https:// 开头）。";}
+    catch{errors.sourceUrl="请填写完整的 HTTPS 招聘页面链接（以 https:// 开头）。";}
   }
-  if(!jd)errors.jd="完整岗位原文不能为空，且至少需要 30 字。";
-  else if(jd.length<30)errors.jd=`完整岗位原文至少需要 30 字，当前 ${jd.length} 字。`;
+  if(!jd)errors.jd="请粘贴完整岗位原文，至少 30 字。";
+  else if(jd.length<30)errors.jd=`岗位原文还差 ${30-jd.length} 字（当前 ${jd.length} 字，至少 30 字）。`;
   return errors;
 }
 async function openReview(item){
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-  await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin}]});
+  await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin,adapterVersion:ADAPTER_VERSION}]});
   window.close();
 }
 function showReview(item){
@@ -249,15 +249,15 @@ function showReview(item){
     const title=String(capture?.title||"").trim();
     const sourceUrl=String(capture?.sourceUrl||"").trim();
     const jd=String(capture?.jd||"").trim();
-    if(!company)errors.company="公司不能为空。";
-    if(!title)errors.title="职位不能为空。";
-    if(!sourceUrl)errors.sourceUrl="来源链接不能为空。";
+    if(!company)errors.company="请填写公司名称。";
+    if(!title)errors.title="请填写职位名称。";
+    if(!sourceUrl)errors.sourceUrl="请填写招聘页面的 HTTPS 链接。";
     else{
-      try{if(new URL(sourceUrl).protocol!=="https:")errors.sourceUrl="来源链接必须是完整的 HTTPS 招聘页面地址。";}
-      catch{errors.sourceUrl="来源链接必须是完整的 HTTPS 招聘页面地址。";}
+      try{if(new URL(sourceUrl).protocol!=="https:")errors.sourceUrl="请填写完整的 HTTPS 招聘页面链接（以 https:// 开头）。";}
+      catch{errors.sourceUrl="请填写完整的 HTTPS 招聘页面链接（以 https:// 开头）。";}
     }
-    if(!jd)errors.jd="完整岗位原文不能为空，且至少需要 30 字。";
-    else if(jd.length<30)errors.jd=`完整岗位原文至少需要 30 字，当前 ${jd.length} 字。`;
+    if(!jd)errors.jd="请粘贴完整岗位原文，至少 30 字。";
+    else if(jd.length<30)errors.jd=`岗位原文还差 ${30-jd.length} 字（当前 ${jd.length} 字，至少 30 字）。`;
     return errors;
   }
   document.getElementById("jobseeking-capture-review")?.remove();
@@ -265,46 +265,46 @@ function showReview(item){
   host.style.cssText="position:fixed;z-index:2147483647;inset:0;pointer-events:none;display:flex;justify-content:flex-end;font:14px/1.6 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#18323a";
   const panel=document.createElement("section");panel.style.cssText="box-sizing:border-box;width:min(560px,100vw);height:100vh;overflow:auto;pointer-events:auto;background:#f5f9f8;box-shadow:-12px 0 40px #102f3840;padding:28px";host.append(panel);
   const heading=document.createElement("header");heading.style.cssText="display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:18px";
-  const title=document.createElement("div");title.innerHTML="<small style='color:#358474'>官网岗位采集</small><h2 style='margin:4px 0;font-size:24px'>在当前岗位页核对</h2><p style='margin:0;color:#61747a'>对照招聘页面，确认后直接加入候选岗位。</p>";heading.append(title);
+  const title=document.createElement("div");title.innerHTML=`<small style='color:#358474'>官网岗位采集 · v${item.adapterVersion||"0.5.4"}</small><h2 style='margin:4px 0;font-size:24px'>在当前岗位页核对</h2><p style='margin:0;color:#61747a'>对照招聘页面，确认后直接加入候选岗位。</p>`;heading.append(title);
   const close=document.createElement("button");close.textContent="关闭";close.onclick=()=>host.remove();heading.append(close);panel.append(heading);
   const known=["wuxiapptec.zhiye.com","job.wuxibiologics.com.cn","genomics.zhiye.com","app.mokahr.com","www.moseeker.com","moseeker.com"].includes(new URL(item.sourceUrl).hostname);
   const sourceNote=document.createElement("p");sourceNote.style.cssText="padding:10px 12px;background:#fff5df;color:#6e5432;font-size:13px";sourceNote.textContent=`当前工作台 · ${known?"该网站有专用识别规则。仍需逐项核对公司、岗位及完整原文。":"未验证来源：通用提取可能抓到列表或其他岗位。请逐项对照原页，缺失字段手动补齐。"}`;panel.append(sourceNote);
-  const contract=document.createElement("p");contract.style.cssText="margin:12px 0;padding:10px 12px;border:1px solid #cfe0db;background:#fff;color:#315b51;font-size:13px";contract.textContent="必填：公司、职位、来源链接、完整岗位原文（至少 30 字）。可选：Base、招聘批次、岗位编号。";panel.append(contract);
+  const status=document.createElement("div");status.hidden=true;status.setAttribute("role","alert");status.setAttribute("aria-live","assertive");status.style.cssText="margin:12px 0;padding:12px 14px;border:1px solid #e1c4ba;background:#fff8f5;color:#984833";panel.append(status);
   const fields={};
-  const fieldErrors={};
   for(const [key,label,required] of [["company","公司",true],["title","职位",true],["base","Base",false],["recruitmentType","招聘批次",false],["jobCode","岗位编号",false],["sourceUrl","来源链接",true]]){
     const wrap=document.createElement("label");wrap.style.cssText="display:grid;gap:5px;margin:12px 0;color:#52686e;font-weight:600";
     const labelRow=document.createElement("span");labelRow.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px";labelRow.append(document.createTextNode(label));
-    const badge=document.createElement("small");badge.textContent=required?"必填":"可选";badge.style.cssText=`font-size:12px;font-weight:700;color:${required?"#9b4938":"#71827d"}`;labelRow.append(badge);wrap.append(labelRow);
+    const badge=document.createElement("small");badge.textContent=required?"必填 *":"可选";badge.style.cssText=`font-size:12px;font-weight:700;color:${required?"#9b4938":"#71827d"}`;labelRow.append(badge);wrap.append(labelRow);
     const input=document.createElement("input");input.value=item[key]||"";input.required=required;if(key==="sourceUrl")input.type="url";input.style.cssText="box-sizing:border-box;width:100%;padding:10px;border:1px solid #bed1cc;border-radius:4px;background:white;font:inherit;color:#18323a";wrap.append(input);
-    const error=document.createElement("small");error.hidden=true;error.style.cssText="color:#a04d3a;font-weight:600";wrap.append(error);panel.append(wrap);fields[key]=input;fieldErrors[key]=error;
+    panel.append(wrap);fields[key]=input;
   }
   const jdWrap=document.createElement("label");jdWrap.style.cssText="display:grid;gap:5px;margin:12px 0;color:#52686e;font-weight:600";
-  const jdLabel=document.createElement("span");jdLabel.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px";jdLabel.append(document.createTextNode("完整岗位原文"));const jdBadge=document.createElement("small");jdBadge.textContent="必填 · 至少 30 字";jdBadge.style.cssText="font-size:12px;font-weight:700;color:#9b4938";jdLabel.append(jdBadge);jdWrap.append(jdLabel);
+  const jdLabel=document.createElement("span");jdLabel.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px";jdLabel.append(document.createTextNode("完整岗位原文"));const jdBadge=document.createElement("small");jdBadge.textContent="必填 * · 至少 30 字";jdBadge.style.cssText="font-size:12px;font-weight:700;color:#9b4938";jdLabel.append(jdBadge);jdWrap.append(jdLabel);
   const jd=document.createElement("textarea");jd.value=item.jd||"";jd.required=true;jd.minLength=30;jd.style.cssText="box-sizing:border-box;width:100%;min-height:280px;padding:12px;border:1px solid #bed1cc;border-radius:4px;background:white;font:inherit;color:#18323a;white-space:pre-wrap";jdWrap.append(jd);
-  const jdError=document.createElement("small");jdError.hidden=true;jdError.style.cssText="color:#a04d3a;font-weight:600";jdWrap.append(jdError);fieldErrors.jd=jdError;panel.append(jdWrap);
+  panel.append(jdWrap);
   const targetWrap=document.createElement("label");targetWrap.style.cssText="display:grid;gap:5px;margin:12px 0;color:#52686e;font-weight:600";targetWrap.textContent="保存到";
   const target=document.createElement("select");target.style.cssText="box-sizing:border-box;width:100%;padding:10px;border:1px solid #bed1cc;border-radius:4px;background:white;font:inherit;color:#18323a";target.add(new Option("正在检查已有岗位…",""));target.disabled=true;targetWrap.append(target);panel.append(targetWrap);
-  const status=document.createElement("div");status.setAttribute("role","status");status.setAttribute("aria-live","polite");status.style.cssText="min-height:22px;margin:12px 0;color:#a04d3a";panel.append(status);
-  const submit=document.createElement("button");submit.textContent="核对无误，加入候选岗位";submit.disabled=true;submit.style.cssText="padding:12px 18px;border:0;border-radius:4px;background:#175849;color:white;font:inherit;cursor:pointer";
+  const submit=document.createElement("button");submit.textContent="核对无误，查重并导入";submit.disabled=true;submit.style.cssText="padding:12px 18px;border:0;border-radius:4px;background:#175849;color:white;font:inherit;cursor:pointer";
   const readCapture=()=>({...item,...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),jd:jd.value.trim()});
   const renderValidation=()=>{
     const errors=validateCaptureForImport(readCapture());
-    for(const [key,error] of Object.entries(fieldErrors)){
-      const message=errors[key]||"";error.textContent=message;error.hidden=!message;
+    for(const key of ["company","title","sourceUrl","jd"]){
+      const message=errors[key]||"";
       const control=key==="jd"?jd:fields[key];control.setAttribute("aria-invalid",message?"true":"false");control.style.borderColor=message?"#c46b56":"#bed1cc";
     }
     status.replaceChildren();
-    if(Object.keys(errors).length){
-      status.style.color="#a04d3a";
-      const lead=document.createElement("strong");lead.textContent="暂不能导入，请处理：";status.append(lead);
-      const list=document.createElement("ul");list.style.cssText="margin:4px 0 0;padding-left:20px";for(const message of Object.values(errors)){const row=document.createElement("li");row.textContent=message;list.append(row);}status.append(list);
+    const errorEntries=Object.entries(errors);
+    if(errorEntries.length){
+      status.hidden=false;
+      const lead=document.createElement("strong");lead.textContent="不能提交";status.append(lead);
+      const fieldLabels={company:"公司",title:"职位",sourceUrl:"来源链接",jd:"完整岗位原文"};
+      const list=document.createElement("ul");list.style.cssText="margin:4px 0 0;padding-left:20px";for(const [key,message] of errorEntries){const row=document.createElement("li");row.textContent=`${fieldLabels[key]}：${message}`;list.append(row);}status.append(list);
       target.replaceChildren(new Option("补齐必填字段后检查",""));
     }else{
-      status.style.color="#175849";status.textContent="必填字段完整。点击后将在当前工作台查重；如保存失败，导入页会显示具体原因。";
+      status.hidden=true;
       target.replaceChildren(new Option("在当前工作台检查并关联",""));
     }
-    submit.disabled=Boolean(Object.keys(errors).length);submit.style.opacity=submit.disabled?".55":"1";submit.style.cursor=submit.disabled?"not-allowed":"pointer";
+    submit.disabled=Boolean(errorEntries.length);submit.style.opacity=submit.disabled?".55":"1";submit.style.cursor=submit.disabled?"not-allowed":"pointer";
     if(submit.textContent==="已打开导入页")submit.textContent="重新打开导入页";
     return errors;
   };
@@ -327,6 +327,7 @@ function showReview(item){
 }
 (async()=>{
   try{
+    $("extension-version").textContent=`v${ADAPTER_VERSION}`;
     workspaceOrigin=await readWorkspaceOrigin();
     const workspaceUrl=new URL(workspaceOrigin);
     $("workspace-label").textContent=workspaceOrigin===DEFAULT_WORKSPACE_ORIGIN?"本机 4173":workspaceUrl.host;
@@ -354,5 +355,8 @@ function showReview(item){
       $("message").textContent=`找到 ${captures.length} 个岗位，当前展开的岗位无法唯一识别，请按岗位编号选择。`;
       $("preview").hidden=true;
     }
-  }catch(error){$("message").textContent=error.message||"读取失败，请刷新岗位页后重试。";}
+  }catch(error){
+    $("workspace-label").textContent="读取失败";
+    $("message").textContent=`插件初始化失败：${error.message||"读取失败，请在扩展管理页重新加载后重试。"}`;
+  }
 })();
