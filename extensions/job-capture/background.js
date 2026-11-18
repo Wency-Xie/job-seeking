@@ -1,19 +1,39 @@
 const allowedOrigins=new Set(["http://127.0.0.1:4173","http://127.0.0.1:4174"]);
-chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
-  if(!["find-capture-matches","save-reviewed-capture"].includes(message?.type))return;
-  (async()=>{
-    const origin=allowedOrigins.has(message.workspaceOrigin)?message.workspaceOrigin:"http://127.0.0.1:4174";
-    const api=`${origin}/api/jobs/capture`;
-    const response=await fetch(api,{method:message.type==="find-capture-matches"?"POST":"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(message.type==="find-capture-matches"?message.capture:{capture:message.capture,targetId:message.targetId,confirmed:true})});
+async function requestCapture(message,origin){
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),8000);
+  try{
+    const response=await fetch(`${origin}/api/jobs/capture`,{method:message.type==="find-capture-matches"?"POST":"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(message.type==="find-capture-matches"?message.capture:{capture:message.capture,targetId:message.targetId,confirmed:true}),signal:controller.signal});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||"岗位保存失败");
-    sendResponse({ok:true,...data});
+    return data;
+  }finally{clearTimeout(timeout);}
+}
+function readableError(error){
+  if(error?.name==="AbortError")return "连接 4173 超时，请确认工作台已启动。";
+  if(/failed to fetch|load failed|network|fetch failed/i.test(error?.message||""))return "无法连接 4173，请先启动 JobSeekingOS。";
+  return error?.message||"无法保存岗位。";
+}
+chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
+  if(message?.type==="open-reviewed-capture"){
+    const origin=allowedOrigins.has(message.workspaceOrigin)?message.workspaceOrigin:"http://127.0.0.1:4173";
+    const payload=encodeURIComponent(JSON.stringify({capture:message.capture,targetId:message.targetId,workspaceOrigin:origin}));
+    chrome.tabs.create({url:`${origin}/capture-import#${payload}`});
+    sendResponse?.({ok:true,opened:true});
+    return;
+  }
+  if(!["find-capture-matches","save-reviewed-capture"].includes(message?.type))return;
+  (async()=>{
+    const origin=allowedOrigins.has(message.workspaceOrigin)?message.workspaceOrigin:"http://127.0.0.1:4173";
+    const data=await requestCapture(message,origin);
     if(message.type==="save-reviewed-capture"){
       const jobId=data.job?.id;
       const url=new URL(`${origin}/candidates?view=rank`);
       if(jobId)url.searchParams.set("newJob",jobId);
+      url.hash="candidate-rank-start";
       chrome.tabs.create({url:url.toString()});
     }
-  })().catch(error=>sendResponse({ok:false,error:/failed to fetch|load failed|network|fetch failed/i.test(error.message||"")?"无法连接所选 JobSeekingOS 工作台。请确认 4174/4173 服务已启动，再重新打开采集面板；当前填写内容仍保留。":error.message||"无法连接 JobSeekingOS，请确认本地服务正在运行。"}));
+    sendResponse?.({ok:true,...data});
+  })().catch(error=>sendResponse?.({ok:false,error:readableError(error)}));
   return true;
 });

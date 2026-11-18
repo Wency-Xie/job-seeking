@@ -1,14 +1,14 @@
 # Support matrix
 
-Updated: 2026-10-01.
+Updated: 2026-11-18.
 
 “Planned” means the platform is in the first adapter scope. “Verified” requires a real page, a recorded extension version, field-by-field write/readback evidence, and confirmation that no application was submitted.
 
 | Platform | Job capture | Application form assistance | Current evidence |
 | --- | --- | --- | --- |
-| Beisen / `*.zhiye.com` | Typed contract added; selected sites tested | Partial live-page evidence | Capture `v0.4.0` normalizes platform and job fields. Sync `v0.6.0` adds a typed confirmed-profile boundary, but WuXi AppTec and BGI still have only limited form readback; BGI search-box exclusion needs final live retest. |
-| Moka / `app.mokahr.com` | Typed contract added; extraction rules present | Not yet verified | Capture `v0.4.0` normalizes extracted fields. A previous form version produced an incorrect gender-field mapping; fixes still require live-page readback. |
-| Moseeker / `*.moseeker.com` | Typed contract added; extraction rules present | Not yet verified | Capture `v0.4.0` normalizes extracted fields. A capture rule is not evidence that application-form assistance works; a real application form remains to be tested. |
+| Beisen / `*.zhiye.com` | Typed contract added; selected sites tested | Partial live-page evidence | Capture `v0.5.0` normalizes platform and job fields. Sync `v0.6.0` adds a typed confirmed-profile boundary, but WuXi AppTec and BGI still have only limited form readback; BGI search-box exclusion needs final live retest. |
+| Moka / `app.mokahr.com` | Typed contract added; extraction rules present | Not yet verified | Capture `v0.5.0` normalizes extracted fields. A previous form version produced an incorrect gender-field mapping; fixes still require live-page readback. |
+| Moseeker / `*.moseeker.com` | Typed contract added; extraction rules present | Not yet verified | Capture `v0.5.0` normalizes extracted fields. A capture rule is not evidence that application-form assistance works; a real application form remains to be tested. |
 | Zhaopin | Not in the first adapter scope | Not in the first adapter scope | Zhaopin is a separate platform from Beisen and requires its own adapter and acceptance record. |
 
 ## Acceptance record
@@ -22,6 +22,16 @@ Every live-site validation should record:
 - whether attachments, draft saving, or submission were intentionally excluded.
 
 Aggregate fill counts and synthetic tests do not replace visible page readback.
+
+## Browser compatibility
+
+The job-capture extension uses one Manifest V3 source tree and one `v0.5.0` ZIP for Safari, Chrome, and Edge.
+
+| Browser | Developer-mode installation | Current evidence |
+| --- | --- | --- |
+| Safari | Load the unpacked WebExtension from Safari's Develop menu | Existing installation path retained; the `v0.5.0` live-browser retest is still pending. |
+| Chrome | Load unpacked from `chrome://extensions` | Chrome 157 loaded `v0.5.0`, triggered the toolbar action, extracted a synthetic HTTPS job, and displayed the review panel without console errors on 2026-11-18. No job was saved. |
+| Edge | Load unpacked from `edge://extensions` | Edge 157 loaded `v0.5.0`, triggered the toolbar action, extracted the same synthetic HTTPS job, and displayed the review panel without console errors on 2026-11-18. No job was saved. |
 
 ## Release gate
 

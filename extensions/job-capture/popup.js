@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-const ADAPTER_VERSION="0.4.0";
+const ADAPTER_VERSION="0.5.0";
 let captures=[];
 function extract() {
   const norm=value=>String(value||"").replace(/\s+/g," ").trim();
@@ -190,11 +190,21 @@ function render(index){
   const item=captures[index];if(!item)return;
   $("title").textContent=item.title||"职位待补";$("meta").textContent=[item.company||"公司待补",item.base||"Base 待补",item.jobCode||"编号待补"].join(" · ");$("length").textContent=item.jd.length>=30?`已提取 ${item.jd.length} 字，请核对是否仅属于当前岗位`:`仅提取 ${item.jd.length} 字，请在原页补齐完整 JD`;
   $("preview").hidden=false;
-  $("open").onclick=async()=>{
-    const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin:$("workspace").value}]});
-    window.close();
-  };
+  $("open").onclick=()=>openReview(item);
+}
+function dedupeCaptures(items){
+  const unique=new Map();
+  for(const item of items){
+    const key=item.jobCode?`code:${item.jobCode.toLowerCase()}`:`title:${item.company.toLowerCase()}|${item.title.toLowerCase()}`;
+    const previous=unique.get(key);
+    if(!previous||item.jd.length>previous.jd.length)unique.set(key,item);
+  }
+  return [...unique.values()];
+}
+async function openReview(item){
+  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
+  await chrome.scripting.executeScript({target:{tabId:tab.id},func:showReview,args:[{...item,workspaceOrigin:$("workspace").value}]});
+  window.close();
 }
 function showReview(item){
   document.getElementById("jobseeking-capture-review")?.remove();
@@ -220,22 +230,21 @@ function showReview(item){
   submit.onclick=()=>{
     const capture={...item,...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),jd:jd.value.trim()};
     if(!capture.company||!capture.title||capture.jd.length<30){status.textContent="请核对公司、职位、来源链接与至少 30 字的完整岗位原文。";return;}
-    submit.disabled=true;submit.textContent="保存中…";status.textContent="";
+    submit.disabled=true;submit.textContent="正在导入优先级…";status.textContent="";
     const {workspaceOrigin,...captureForSave}=capture;
-    chrome.runtime.sendMessage({type:"save-reviewed-capture",capture:captureForSave,targetId:target.value||undefined,workspaceOrigin},reply=>{
-      if(!reply?.ok){status.textContent=reply?.error||chrome.runtime.lastError?.message||"保存失败，请重试。";submit.disabled=false;submit.textContent="核对无误，加入候选岗位";return;}
-      status.style.color="#175849";status.textContent=`已保存「${reply.job.title}」，正在打开候选岗位。`;submit.textContent="已加入候选";
-    });
+    const origin=["http://127.0.0.1:4173","http://127.0.0.1:4174"].includes(workspaceOrigin)?workspaceOrigin:"http://127.0.0.1:4173";
+    const payload=encodeURIComponent(JSON.stringify({capture:captureForSave,workspaceOrigin:origin}));
+    const opened=window.open(`${origin}/capture-import#${payload}`,"_blank");
+    if(opened){
+      try{opened.opener=null;}catch{}
+    }
+    if(!opened){status.style.color="#a04d3a";status.textContent="浏览器阻止了新标签页，请允许此网站打开弹出窗口后重试。";submit.disabled=false;submit.textContent="重新打开导入页";return;}
+    status.style.color="#175849";status.textContent="已打开 4173 导入页；查重、关联和保存将在新标签页完成。";submit.textContent="已打开导入页";
   };panel.append(submit);document.body.append(host);
   if(!item.company||!item.title||item.jd.length<30){target.replaceChildren(new Option("新建候选岗位",""));target.disabled=false;submit.disabled=false;status.textContent="提取信息不完整；请在原页补齐公司、职位和完整 JD。";return;}
-  const {workspaceOrigin,...captureForMatch}=item;
-  chrome.runtime.sendMessage({type:"find-capture-matches",capture:captureForMatch,workspaceOrigin},reply=>{
-    if(!reply?.ok){status.textContent=reply?.error||chrome.runtime.lastError?.message||"查询已有岗位失败，请重试打开采集面板。";return;}
-    target.replaceChildren();target.add(new Option("新建候选岗位",""));
-    for(const match of reply.matches||[])target.add(new Option(`关联已有：${match.title} · ${match.base||"Base 待补"}`,match.id));
-    target.disabled=false;submit.disabled=false;
-    if(reply.matches?.length)status.textContent=`找到 ${reply.matches.length} 个可能已有的岗位，请选择新建或关联。`;
-  });
+  target.replaceChildren(new Option("在 4173 导入页检查并关联",""));
+  target.disabled=true;submit.disabled=false;
+  status.textContent="点击后将在 4173 新标签页查重；发现已有岗位时可先选择关联。";
 }
 (async()=>{
   try{
@@ -243,13 +252,20 @@ function showReview(item){
     if(!tab?.url?.startsWith("https://"))throw new Error("请先打开 HTTPS 招聘岗位页面。");
     const result=await chrome.scripting.executeScript({target:{tabId:tab.id},func:extract});
     const extracted=result[0]?.result||{jobs:[],suggestedIndex:null};
-    captures=extracted.jobs.map(item=>JobSeekingContracts.normalizeCapturedJob(item,ADAPTER_VERSION));
+    const normalized=extracted.jobs.map(item=>JobSeekingContracts.normalizeCapturedJob(item,ADAPTER_VERSION));
+    const suggested=extracted.suggestedIndex===null?null:normalized[extracted.suggestedIndex];
+    captures=dedupeCaptures(normalized);
+    const suggestedIndex=suggested?captures.findIndex(item=>suggested.jobCode?item.jobCode.toLowerCase()===suggested.jobCode.toLowerCase():item.company===suggested.company&&item.title===suggested.title):null;
     if(!captures.length)throw new Error("未找到岗位。请先展开目标岗位，再打开插件。");
     if(captures.length>1){$("picker").hidden=false;$("jobs").add(new Option("请确认当前展开的岗位",""));captures.forEach((item,index)=>$("jobs").add(new Option(`${item.jobCode||"无编号"} · ${item.title||"职位待补"}`,String(index))));$("jobs").onchange=event=>{if(event.target.value!=="")render(Number(event.target.value));else $("preview").hidden=true;};}
-    if(extracted.suggestedIndex!==null){
-      $("message").textContent=captures.length===1?"已尝试提取当前岗位，请在原页核对。":`已定位当前可见岗位 · ${captures[extracted.suggestedIndex].jobCode}。请核对编号。`;
-      if(captures.length>1)$("jobs").value=String(extracted.suggestedIndex);
-      render(extracted.suggestedIndex);
+    if(suggestedIndex!==null&&suggestedIndex>=0){
+      $("message").textContent=captures.length===1?"已尝试提取当前岗位，请在原页核对。":`已定位当前可见岗位 · ${captures[suggestedIndex].jobCode}。请核对编号。`;
+      if(captures.length>1)$("jobs").value=String(suggestedIndex);
+      render(suggestedIndex);
+      if(captures.length===1){
+        $("message").textContent="已提取当前岗位，正在打开右侧核对栏…";
+        await openReview(captures[0]);
+      }
     }else{
       $("message").textContent=`找到 ${captures.length} 个岗位，当前展开的岗位无法唯一识别，请按岗位编号选择。`;
       $("preview").hidden=true;

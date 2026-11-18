@@ -102,4 +102,3 @@ const JobSeekingContracts = Object.freeze({
   normalizeCapturedJob,
   splitJd,
 });
-
