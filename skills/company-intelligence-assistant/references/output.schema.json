@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Company intelligence research output v6",
+  "type": "object",
+  "required": ["status", "company", "researchedAt", "summary", "coreFindings", "coverage", "gaps", "attemptedSources", "facts", "analysis", "openQuestions", "sources"],
+  "properties": {
+    "status": { "enum": ["ready", "incomplete"] },
+    "company": { "type": "string", "minLength": 1 },
+    "researchedAt": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "coverage": {
+      "type": "object",
+      "required": ["industry-position", "products-pipeline", "competition-landscape", "organization-operation", "role-judgement"],
+      "additionalProperties": { "$ref": "#/$defs/coverage" }
+    },
+    "coreFindings": {
+      "type": "object",
+      "required": ["offering", "buyers", "valueDelivery", "competitiveBasis"],
+      "properties": {
+        "offering": { "$ref": "#/$defs/coreFinding" },
+        "buyers": { "$ref": "#/$defs/coreFinding" },
+        "valueDelivery": { "$ref": "#/$defs/coreFinding" },
+        "competitiveBasis": { "$ref": "#/$defs/coreFinding" }
+      }
+    },
+    "gaps": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "attemptedSources": { "type": "array", "items": { "$ref": "#/$defs/attemptedSource" }, "minItems": 1 },
+    "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+    "analysis": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "openQuestions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+    "profile": { "$ref": "#/$defs/profile" },
+    "industryContext": { "$ref": "#/$defs/industryContext" },
+    "sectionEvidence": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "integer", "minimum": 0 } } },
+    "annotations": { "type": "array", "items": { "$ref": "#/$defs/annotation" } }
+  },
+  "$defs": {
+    "coverage": {
+      "type": "object",
+      "required": ["status", "reason", "factIndexes", "attemptIndexes"],
+      "properties": {
+        "status": { "enum": ["covered", "public_gap", "not_applicable", "unresearched", "mapping_error"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "factIndexes": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "attemptIndexes": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "businessLine": {
+      "type": "object", "required": ["name", "offer", "user", "buyer", "workflow", "roleValue"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 }, "offer": { "type": "string", "minLength": 1 },
+        "user": { "type": "string", "minLength": 1 }, "buyer": { "type": "string", "minLength": 1 },
+        "workflow": { "type": "string", "minLength": 1 }, "roleValue": { "type": "string" }
+      }
+    },
+    "competitor": {
+      "type": "object", "required": ["layer", "names", "contest", "difference"],
+      "properties": {
+        "layer": { "type": "string", "minLength": 1 },
+        "names": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "contest": { "type": "string", "minLength": 1 }, "difference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object", "required": ["label", "url", "type"],
+      "properties": { "label": { "type": "string", "minLength": 1 }, "url": { "type": "string", "minLength": 1 }, "type": { "enum": ["官方", "年报", "行业"] } }
+    },
+    "organization": {
+      "type": "object", "required": ["asOf", "summary", "timeline", "leadership", "financials", "strategies", "styleSignals", "verificationQuestions", "sources"],
+      "properties": {
+        "asOf": { "type": "string", "minLength": 1 }, "summary": { "type": "string", "minLength": 1 },
+        "timeline": { "type": "array", "items": { "$ref": "#/$defs/timeline" } },
+        "leadership": { "type": "array", "items": { "$ref": "#/$defs/leadership" } },
+        "financials": { "type": "array", "items": { "$ref": "#/$defs/financial" } },
+        "financialMixes": { "type": "array", "items": { "$ref": "#/$defs/financialMix" } },
+        "revenueChain": { "type": "array", "items": { "$ref": "#/$defs/revenueChain" } },
+        "researchDepth": { "$ref": "#/$defs/researchDepth" },
+        "strategies": { "type": "array", "items": { "$ref": "#/$defs/strategy" } },
+        "styleSignals": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "verificationQuestions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "sources": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["label", "url", "type"], "properties": { "label": { "type": "string", "minLength": 1 }, "url": { "type": "string", "minLength": 1 }, "type": { "enum": ["官网", "年报", "季报", "采访"] } } } }
+      }
+    },
+    "timeline": {"type": "object", "required": ["year", "event", "change", "impact"], "properties": {"year": {"type": "string", "minLength": 1}, "event": {"type": "string", "minLength": 1}, "change": {"type": "string", "minLength": 1}, "impact": {"type": "string", "minLength": 1}, "context": {"type": "string", "minLength": 1}, "sourceUrl": {"type": "string", "minLength": 1}}},
+    "leadership": {"type": "object", "required": ["action", "signal", "evidence", "roleImpact"], "properties": {"action": {"type": "string", "minLength": 1}, "signal": {"type": "string", "minLength": 1}, "evidence": {"type": "string", "minLength": 1}, "roleImpact": {"type": "string", "minLength": 1}, "date": {"type": "string", "minLength": 1}, "speaker": {"type": "string", "minLength": 1}, "sourceUrl": {"type": "string", "minLength": 1}}},
+    "financial": {"type": "object", "required": ["period", "revenue", "profit", "rd", "cashflow", "reading"], "properties": {"period": {"type": "string", "minLength": 1}, "periodType": {"enum": ["annual", "interim"]}, "revenue": {"type": "string", "minLength": 1}, "profit": {"type": "string", "minLength": 1}, "rd": {"type": "string", "minLength": 1}, "cashflow": {"type": "string", "minLength": 1}, "reading": {"type": "string", "minLength": 1}, "metrics": {"$ref": "#/$defs/annualMetrics"}}},
+    "financialMix": { "type": "object", "required": ["period", "title", "segments"], "properties": { "period": { "type": "string", "minLength": 1 }, "title": { "type": "string", "minLength": 1 }, "segments": { "type": "array", "minItems": 2, "items": { "type": "object", "required": ["label", "share", "value"], "properties": { "label": { "type": "string", "minLength": 1 }, "share": { "type": "number", "minimum": 0, "maximum": 100 }, "value": { "type": "string", "minLength": 1 } } } } } },
+    "strategy": { "type": "object", "required": ["title", "statement", "action", "signal"], "properties": { "title": { "type": "string", "minLength": 1 }, "statement": { "type": "string", "minLength": 1 }, "action": { "type": "string", "minLength": 1 }, "signal": { "type": "string", "minLength": 1 } } },
+    "annualMetrics": {
+      "type": "object",
+      "required": ["year", "scope", "unit", "revenue", "profit", "cashflow"],
+      "properties": {
+        "year": {"type": "integer", "minimum": 1900},
+        "scope": {"type": "string", "minLength": 1},
+        "unit": {"enum": ["亿元"]},
+        "revenue": {"type": ["number", "null"]},
+        "profit": {"type": ["number", "null"]},
+        "cashflow": {"type": ["number", "null"]}
+      }
+    },
+    "revenueChain": {
+      "type": "object",
+      "required": ["kind", "entity", "offering", "period", "amount", "relationship", "limitation", "sourceUrl"],
+      "properties": {
+        "kind": {"enum": ["revenue", "procurement"]},
+        "entity": {"type": "string", "minLength": 1},
+        "offering": {"type": "string", "minLength": 1},
+        "period": {"type": "string", "minLength": 1},
+        "amount": {"type": "string", "minLength": 1},
+        "relationship": {"type": "string", "minLength": 1},
+        "limitation": {"type": "string", "minLength": 1},
+        "sourceUrl": {"type": "string", "minLength": 1}
+      }
+    },
+    "researchDepth": {
+      "type": "object",
+      "required": ["history", "leadership", "financials", "revenueChain"],
+      "properties": {
+        "history": {"type": "object", "required": ["status", "reason", "sourceUrls"], "properties": {"status": {"enum": ["covered", "public_gap"]}, "reason": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}},
+        "leadership": {"type": "object", "required": ["status", "reason", "sourceUrls"], "properties": {"status": {"enum": ["covered", "public_gap"]}, "reason": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}},
+        "financials": {"type": "object", "required": ["status", "reason", "sourceUrls"], "properties": {"status": {"enum": ["covered", "public_gap"]}, "reason": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}},
+        "revenueChain": {"type": "object", "required": ["status", "reason", "sourceUrls"], "properties": {"status": {"enum": ["covered", "public_gap"]}, "reason": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}}
+      }
+    },
+    "coreFinding": {
+      "type": "object",
+      "required": ["answer", "factIndexes"],
+      "properties": {
+        "answer": { "type": "string" },
+        "factIndexes": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "attemptedSource": {
+      "type": "object",
+      "required": ["title", "outcome"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "type": "string" },
+        "outcome": { "type": "string", "minLength": 1 }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "required": ["claim", "sourceUrl", "sourceTitle", "asOf"],
+      "properties": {
+        "claim": { "type": "string", "minLength": 1 },
+        "sourceUrl": { "type": "string", "minLength": 1 },
+        "sourceTitle": { "type": "string", "minLength": 1 },
+        "asOf": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["title", "url", "accessedAt"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1 },
+        "accessedAt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": ["name", "arena", "industryTrack", "valueChain", "fact", "source", "jobValue", "products", "scenarios", "users", "evidence"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "arena": { "type": "string", "minLength": 1 },
+        "industryTrack": { "type": "string", "minLength": 1 },
+        "valueChain": { "type": "string", "minLength": 1 },
+        "fact": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "jobValue": { "type": "string" },
+        "products": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "scenarios": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "users": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "competitors": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "advantages": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "risks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "sharedSkills": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "uniqueSkills": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "questions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "businessLines": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/businessLine" } },
+        "competitorMap": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/competitor" } },
+        "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } },
+        "organization": { "$ref": "#/$defs/organization" }
+      }
+    },
+    "industryContext": {
+      "type": "object",
+      "required": ["upstream", "downstream"],
+      "properties": {
+        "upstream": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "downstream": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "analysis": { "$ref": "#/$defs/industryAnalysis" }
+      }
+    },
+    "industryAnalysis": {
+      "type": "object",
+      "required": ["asOf", "scope", "position", "currentState", "outlook", "gaps"],
+      "properties": {
+        "asOf": {"type": "string", "minLength": 1},
+        "scope": {"type": "object", "required": ["name", "definition", "boundary", "sourceUrls"], "properties": {"name": {"type": "string", "minLength": 1}, "definition": {"type": "string", "minLength": 1}, "boundary": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}},
+        "position": {"type": "object", "required": ["label", "basis", "peers", "limitation", "sourceUrls"], "properties": {"label": {"type": "string", "minLength": 1}, "basis": {"type": "string", "minLength": 1}, "peers": {"type": "string", "minLength": 1}, "limitation": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}},
+        "currentState": {"type": "array", "minItems": 2, "items": {"type": "object", "required": ["title", "observation", "impact", "sourceUrls"], "properties": {"title": {"type": "string", "minLength": 1}, "observation": {"type": "string", "minLength": 1}, "impact": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "brief": {"type": "string", "minLength": 1}}}},
+        "outlook": {"type": "array", "minItems": 2, "items": {"type": "object", "required": ["title", "horizon", "direction", "drivers", "conditions", "watch", "sourceUrls"], "properties": {"title": {"type": "string", "minLength": 1}, "horizon": {"type": "string", "minLength": 1}, "direction": {"type": "string", "minLength": 1}, "drivers": {"type": "string", "minLength": 1}, "conditions": {"type": "string", "minLength": 1}, "watch": {"type": "string", "minLength": 1}, "sourceUrls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "brief": {"type": "string", "minLength": 1}}}},
+        "landscape": {"type": "object", "required": ["inputs", "service", "alternative", "customer", "note"], "properties": {"inputs": {"type": "object", "required": ["label", "detail"], "properties": {"label": {"type": "string", "minLength": 1}, "detail": {"type": "string", "minLength": 1}}}, "service": {"type": "object", "required": ["label", "detail"], "properties": {"label": {"type": "string", "minLength": 1}, "detail": {"type": "string", "minLength": 1}}}, "alternative": {"type": "object", "required": ["label", "detail"], "properties": {"label": {"type": "string", "minLength": 1}, "detail": {"type": "string", "minLength": 1}}}, "customer": {"type": "object", "required": ["label", "detail"], "properties": {"label": {"type": "string", "minLength": 1}, "detail": {"type": "string", "minLength": 1}}}, "note": {"type": "string", "minLength": 1}}},
+        "gaps": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "annotation": {
+      "type": "object",
+      "required": ["path", "classification", "factIndexes", "note"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "classification": { "enum": ["fact", "inference"] },
+        "factIndexes": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 1 },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
